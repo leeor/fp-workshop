@@ -41,7 +41,7 @@
     "precommit": "lint-staged",
     "test": "jest --coverage",
     "watch": "jest --watchAll",
-    "start": "git checkout -t -b workspace && git merge --no-edit origin/stage-one"
+    "next": "git merge -s recursive -Xtheirs --no-commit origin/stage-two && git reset HEAD -- src/posts/index.js && git checkout -- src/posts/index.js && git commit -m 'start stage two'"
   },
   "jest": {
     "testEnvironment": "node"
