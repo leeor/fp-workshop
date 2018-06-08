@@ -17,6 +17,15 @@ const {
   updatePost
 } = require('./posts')
 
+const {
+  addAuthor,
+  deleteAuthor,
+  getAuthor,
+  getAuthors,
+  getPostsForAuthor,
+  updateAuthor
+} = require('./authors')
+
 const withErrorLogging = fn => (...args) => {
   try {
     return fn(...args)
@@ -49,6 +58,18 @@ module.exports = {
         .get(withErrorLogging(getPost))
         .delete(withErrorLogging(deletePost))
         .put(jsonParser, withErrorLogging(updatePost))
+      app
+        .route('/authors/')
+        .get(withErrorLogging(getAuthors))
+        .post(jsonParser, withErrorLogging(addAuthor))
+      app
+        .route('/authors/:authorId')
+        .get(withErrorLogging(getAuthor))
+        .delete(withErrorLogging(deleteAuthor))
+        .put(jsonParser, withErrorLogging(updateAuthor))
+      app
+        .route('/authors/:authorId/posts')
+        .get(withErrorLogging(getPostsForAuthor))
 
       return stoppable(http.createServer(app), 0)
     }).then(srv => {

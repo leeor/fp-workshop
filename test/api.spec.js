@@ -53,7 +53,9 @@ describe('API', function() {
         const postId = titleToPostId(postTitle)
         const post = {
           title: postTitle,
-          body: 'another chapter in the adventures of Dorothy in the land of Oz'
+          body:
+            'another chapter in the adventures of Dorothy in the land of Oz',
+          author: 'leeor'
         }
 
         await request(server)
@@ -70,7 +72,8 @@ describe('API', function() {
         const postTitle = siteData.posts[0].title
         const post = {
           title: postTitle,
-          body: 'An alternative history of Dorothy'
+          body: 'An alternative history of Dorothy',
+          author: 'leeor'
         }
 
         return request(server)
@@ -82,13 +85,29 @@ describe('API', function() {
       test('should return a 400 error when trying to add an invalid post', async function() {
         const postTitle = 'A New Blog Post'
         const post = {
-          title: postTitle
+          title: postTitle,
+          author: 'leeor'
         }
 
         return request(server)
           .post(`/posts`)
           .send({ post })
           .expect(400)
+      })
+
+      test('should reject with a 401 error a new blog post by unknown author', async function() {
+        const postTitle = 'A New Blog Post'
+        const post = {
+          title: postTitle,
+          body:
+            'another chapter in the adventures of Dorothy in the land of Oz',
+          author: 'unknown'
+        }
+
+        return request(server)
+          .post(`/posts`)
+          .send({ post })
+          .expect(401)
       })
     })
 
@@ -170,6 +189,163 @@ describe('API', function() {
           .delete(`/posts/${postToDelete}`)
           .expect(404)
       })
+    })
+  })
+
+  describe('authors', function() {
+    describe('GET', function() {
+      test('should return all authors', async function() {
+        return request(server)
+          .get(`/authors`)
+          .expect(200, siteData.authors)
+      })
+
+      test('should return a specific author', async function() {
+        return Promise.all(
+          siteData.authors.map(author => {
+            const authorId = author.id
+            return request(server)
+              .get(`/authors/${authorId}`)
+              .expect(200, author)
+          })
+        )
+      })
+
+      test('should return a 404 error when requesting a non-existing author', async function() {
+        const author = R.reverse(siteData.authors[0])
+        const authorId = author.id
+        return request(server)
+          .get(`/authors/${authorId}`)
+          .expect(404)
+      })
+    })
+
+    describe('POST', function() {
+      test('should add an author', async function() {
+        const authorId = 'guy'
+        const author = {
+          id: authorId,
+          displayName: 'new guy'
+        }
+
+        await request(server)
+          .post(`/authors`)
+          .send({ author })
+          .expect(200, { authorId })
+
+        return request(server)
+          .get(`/authors/${authorId}`)
+          .expect(200, author)
+      })
+
+      test('should return a 400 error when trying to add an existing author', async function() {
+        const authorId = siteData.authors[0].id
+        const author = {
+          id: authorId,
+          displayName: 'new guy'
+        }
+
+        return request(server)
+          .post(`/authors`)
+          .send({ author })
+          .expect(400)
+      })
+
+      test('should return a 400 error when trying to add an invalid author', async function() {
+        const authorId = 'guy'
+        const author = {
+          id: authorId
+        }
+
+        return request(server)
+          .post(`/authors`)
+          .send({ author })
+          .expect(400)
+      })
+    })
+
+    describe('PUT', function() {
+      test('should update an author', async function() {
+        const authorId = siteData.authors[0].id
+        const author = {
+          id: authorId,
+          displayName: 'newer guy'
+        }
+
+        await request(server)
+          .put(`/authors/${authorId}`)
+          .send({ author })
+          .expect(200)
+
+        return request(server)
+          .get(`/authors/${authorId}`)
+          .expect(200, Object.assign({}, author))
+      })
+
+      test('should return a 404 error when trying to update a non-existing author', async function() {
+        const authorId = R.reverse(siteData.authors[0].id)
+        const author = {
+          id: authorId,
+          displayName: 'newer guy'
+        }
+
+        await request(server)
+          .put(`/authors/${authorId}`)
+          .send({ author })
+          .expect(404)
+      })
+
+      test('should return a 400 error when trying to update with an invalid author', async function() {
+        const authorId = siteData.authors[0].id
+        const author = {
+          id: authorId
+        }
+
+        return request(server)
+          .put(`/authors/${authorId}`)
+          .send({ author })
+          .expect(400)
+      })
+    })
+
+    describe('DELETE', function() {
+      test('should delete a specific author and all related content', async function() {
+        const author = siteData.authors[0]
+        const authorId = author.id
+        await request(server)
+          .delete(`/authors/${authorId}`)
+          .expect(200)
+
+        await request(server)
+          .get(`/authors/${authorId}`)
+          .expect(404)
+
+        return request(server)
+          .get(`/authors/${authorId}/posts`)
+          .expect(200, [])
+      })
+
+      test('should return a 404 error when deleting a non-existing author', async function() {
+        const authorId = R.reverse(siteData.authors[0].id)
+        return request(server)
+          .delete(`/authors/${authorId}`)
+          .expect(404)
+      })
+    })
+
+    test('should return all posts for a given author', async function() {
+      return Promise.all(
+        siteData.authors.map(author => {
+          const authorId = author.id
+          const postsByAuthor = siteData.posts.filter(
+            post => post.author === authorId
+          )
+
+          return request(server)
+            .get(`/authors/${authorId}/posts`)
+            .expect(200, postsByAuthor)
+        })
+      )
     })
   })
 })
