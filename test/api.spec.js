@@ -65,7 +65,7 @@ describe('API', function() {
 
         return request(server)
           .get(`/posts/${postId}`)
-          .expect(200, Object.assign({}, post, { id: postId }))
+          .expect(200, Object.assign({}, post, { comments: [], id: postId }))
       })
 
       test('should return a 400 error when trying to add a post with an existing title', async function() {
@@ -160,7 +160,7 @@ describe('API', function() {
 
       test('should return a 400 error when trying to update with an invalid post', async function() {
         const postToUpdate = siteData.posts[0].id
-        const updatedPost = R.pick(['title'], siteData.posts[0])
+        const updatedPost = R.pick(['title', 'comments'], siteData.posts[0])
 
         return request(server)
           .put(`/posts/${postToUpdate}`)
@@ -187,6 +187,153 @@ describe('API', function() {
 
         return request(server)
           .delete(`/posts/${postToDelete}`)
+          .expect(404)
+      })
+    })
+  })
+
+  describe('comments', function() {
+    describe('GET', function() {
+      test('should return all comments of a specific post', async function() {
+        return Promise.all(
+          siteData.posts.map(post => {
+            const postId = post.id
+            return request(server)
+              .get(`/posts/${postId}/comments`)
+              .expect(200, post.comments)
+          })
+        )
+      })
+
+      test('should return a specific comment of a specific post', async function() {
+        return Promise.all(
+          R.flatten(
+            siteData.posts.map(post => {
+              const postId = post.id
+              return post.comments.map((comment, index) =>
+                request(server)
+                  .get(`/posts/${postId}/comments/${index}`)
+                  .expect(200, comment)
+              )
+            })
+          )
+        )
+      })
+
+      test('should return a 404 error when a requested comment does not exist', async function() {
+        const postId = siteData.posts[0].id
+        const commentToRequest = siteData.posts[0].comments.length
+        request(server)
+          .get(`/posts/${postId}/comments/${commentToRequest}`)
+          .expect(404)
+      })
+    })
+
+    describe('POST', function() {
+      test('should add a comment to a post', async function() {
+        const post = siteData.posts[0]
+        const postId = post.id
+        const comment = {
+          author: 'leeor',
+          body: 'testing... 1... 2... 3...'
+        }
+
+        await request(server)
+          .post(`/posts/${postId}/comments`)
+          .send({ comment })
+          .expect(200, { commentIdx: post.comments.length })
+
+        return request(server)
+          .get(`/posts/${postId}`)
+          .expect(
+            200,
+            Object.assign({}, post, { comments: post.comments.concat(comment) })
+          )
+      })
+
+      test('should reject with a 401 error a new comment by an unknown author', async function() {
+        const postId = siteData.posts[0].id
+        const comment = {
+          author: 'someone',
+          body: 'testing... 1... 2... 3...'
+        }
+
+        return request(server)
+          .post(`/posts/${postId}/comments`)
+          .send({ comment })
+          .expect(401)
+      })
+
+      test('should reject with a 404 error a new comment for a non-existing post', async function() {
+        const postId = R.reverse(siteData.posts[0].id)
+        const comment = {
+          author: 'someone',
+          body: 'testing... 1... 2... 3...'
+        }
+
+        return request(server)
+          .post(`/posts/${postId}/comments`)
+          .send({ comment })
+          .expect(404)
+      })
+    })
+
+    describe('PUT', function() {
+      test('should update a comment', async function() {
+        const post = siteData.posts[0]
+        const postId = post.id
+        const comment = {
+          author: 'leeor',
+          body: 'testing... 1... 2... 3... 4...'
+        }
+
+        await request(server)
+          .put(`/posts/${postId}/comments/0`)
+          .send({ comment })
+          .expect(200)
+
+        return request(server)
+          .get(`/posts/${postId}`)
+          .expect(
+            200,
+            Object.assign({}, post, {
+              comments: R.update(0, comment, post.comments)
+            })
+          )
+      })
+
+      test('should return a 404 error when trying to update a non-existing comment', async function() {
+        const postId = siteData.posts[0].id
+        const commentToUpdate = siteData.posts[0].comments.length
+        const comment = {
+          author: 'leeor',
+          body: 'testing... 1... 2... 3... 4...'
+        }
+
+        return request(server)
+          .put(`/posts/${postId}/comments/${commentToUpdate}`)
+          .send({ comment })
+          .expect(404)
+      })
+    })
+
+    describe('DELETE', function() {
+      test('should delete a specific comment of a specific post', async function() {
+        const postId = siteData.posts[0].id
+        await request(server)
+          .delete(`/posts/${postId}/comments/0`)
+          .expect(200)
+
+        return request(server)
+          .get(`/posts/${postId}`)
+          .expect(200, Object.assign({}, siteData.posts[0], { comments: [] }))
+      })
+
+      test('should return a 404 error when asked to delete a non existing comment', async function() {
+        const postId = siteData.posts[0].id
+        const commentToDelete = siteData.posts[0].comments.length
+        return request(server)
+          .delete(`/posts/${postId}/comments/${commentToDelete}`)
           .expect(404)
       })
     })
@@ -320,8 +467,12 @@ describe('API', function() {
           .get(`/authors/${authorId}`)
           .expect(404)
 
-        return request(server)
+        await request(server)
           .get(`/authors/${authorId}/posts`)
+          .expect(200, [])
+
+        return request(server)
+          .get(`/authors/${authorId}/comments`)
           .expect(200, [])
       })
 
@@ -344,6 +495,21 @@ describe('API', function() {
           return request(server)
             .get(`/authors/${authorId}/posts`)
             .expect(200, postsByAuthor)
+        })
+      )
+    })
+
+    test('should return all comments for a given author', async function() {
+      return Promise.all(
+        siteData.authors.map(author => {
+          const authorId = author.id
+          const commentsByAuthor = R.flatten(
+            siteData.posts.map(post => post.comments)
+          ).filter(comment => comment.author === authorId)
+
+          return request(server)
+            .get(`/authors/${authorId}/comments`)
+            .expect(200, commentsByAuthor)
         })
       )
     })

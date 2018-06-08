@@ -18,10 +18,19 @@ const {
 } = require('./posts')
 
 const {
+  addComment,
+  deleteComment,
+  getComment,
+  getCommentsForPost,
+  updateComment
+} = require('./comments')
+
+const {
   addAuthor,
   deleteAuthor,
   getAuthor,
   getAuthors,
+  getCommentsForAuthor,
   getPostsForAuthor,
   updateAuthor
 } = require('./authors')
@@ -59,6 +68,15 @@ module.exports = {
         .delete(withErrorLogging(deletePost))
         .put(jsonParser, withErrorLogging(updatePost))
       app
+        .route('/posts/:postId/comments')
+        .get(withErrorLogging(getCommentsForPost))
+        .post(jsonParser, withErrorLogging(addComment))
+      app
+        .route('/posts/:postId/comments/:commentIdx')
+        .get(withErrorLogging(getComment))
+        .delete(withErrorLogging(deleteComment))
+        .put(jsonParser, withErrorLogging(updateComment))
+      app
         .route('/authors/')
         .get(withErrorLogging(getAuthors))
         .post(jsonParser, withErrorLogging(addAuthor))
@@ -70,6 +88,9 @@ module.exports = {
       app
         .route('/authors/:authorId/posts')
         .get(withErrorLogging(getPostsForAuthor))
+      app
+        .route('/authors/:authorId/comments')
+        .get(withErrorLogging(getCommentsForAuthor))
 
       return stoppable(http.createServer(app), 0)
     }).then(srv => {
