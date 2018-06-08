@@ -1,0 +1,51 @@
+{
+  "name": "fp-workshop",
+  "version": "0.0.1",
+  "description": "",
+  "main": "",
+  "config": {
+    "eslintopts": "--cache --format codeframe --ext .js,.jsx"
+  },
+  "lint-staged": {
+    "linters": {
+      "*.{js,jsx}": "eslint $npm_package_config_eslintopts"
+    }
+  },
+  "dependencies": {
+    "clone-deep": "4.0.0",
+    "crocks": "^0.9.4",
+    "express": "4.16.3",
+    "lodash": "4.17.5",
+    "ramda": "0.25.0",
+    "stoppable": "1.0.6"
+  },
+  "devDependencies": {
+    "eslint": "^3.16.1",
+    "eslint-config-prettier": "^2.4.0",
+    "eslint-config-standard": "^7.0.0",
+    "eslint-plugin-jest": "^21.12.1",
+    "eslint-plugin-lodash": "2.7.0",
+    "eslint-plugin-prettier": "^2.2.0",
+    "eslint-plugin-promise": "^3.5.0",
+    "eslint-plugin-standard": "^2.1.1",
+    "husky": "^0.14.3",
+    "jest": "22.3.0",
+    "lint-staged": "^5.0.0",
+    "listen-on-free-port": "1.0.3",
+    "prettier": "^1.7.0",
+    "supertest": "3.1.0"
+  },
+  "scripts": {
+    "lint": "eslint --cache --format codeframe --ext .js,.jsx .",
+    "lint-staged": "lint-staged",
+    "precommit": "lint-staged",
+    "test": "jest --coverage",
+    "watch": "jest --watchAll",
+    "start": "git checkout -t -b workspace && git merge --no-edit origin/stage-one"
+  },
+  "jest": {
+    "testEnvironment": "node"
+  },
+  "author": "Leeor Aharon",
+  "license": "MIT"
+}
