@@ -15,7 +15,7 @@
     "clone-deep": "4.0.0",
     "crocks": "^0.9.4",
     "express": "4.16.3",
-    "lodash": "4.17.5",
+    "lodash": "4.17.11",
     "ramda": "0.25.0",
     "stoppable": "1.0.6"
   },
